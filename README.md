@@ -1,6 +1,6 @@
 
 # typescript 学习笔记
-##  1. <a name='typescript'></a>typescript概述
+##  typescript概述
 
 **JS开发中的问题**
 
@@ -30,7 +30,7 @@ tsc: ts编译器
 
 > 中文网：https://www.tslang.cn/  个人翻译
 
-##  2. <a name='nodets'></a>在node环境中使用ts
+##  在node环境中使用ts
 全局安装typescript
 ```
 > npm install -g typescript
@@ -52,6 +52,7 @@ console.log(str);
 新建一个配置文件tsconfig.json
 
 ![biWIET.png](https://s4.ax1x.com/2022/02/24/biWIET.png)
+
 可以在这个文件里面配置文件的转化规则
 ```json
 {
@@ -109,7 +110,7 @@ nodemon: 用于检测文件的变化（全局安装）
 > JQuery：用js写的，没有类型检查
 > 安装@types/jquery，为jquery库添加类型定义
 
-##  3. <a name='ts'></a>ts基本类型约束使用
+##  基本类型约束使用
 **基本类型**
 
 - number：数字
@@ -133,6 +134,7 @@ str = 1
 ```
 报错
 ![biODQf.md.png](https://s4.ax1x.com/2022/02/24/biODQf.md.png)
+
 以下是正确的写法
 ```ts
 let str:String = 'abc'
@@ -141,7 +143,7 @@ str = '1'
 str = null //在非严格控类情况下可以这样赋值
 str = undefined //在非严格控类情况下可以这样赋值
 ```
-##  4. <a name=''></a>常见类型 一下都是严格控类情况下
+##  常见类型 一下都是严格控类情况下
 注：string,number,boolean,object的类型名称的首字母可大写可小写，其他的类型名称首字母只能小写
 ```ts
 let str:String = 'abc' //只能赋值字符串
@@ -285,8 +287,8 @@ function fn6(obj:object,msg:string):never{
 }
 ```
 
-##  5. <a name='-1'></a>扩展类型
-###  5.1. <a name='-1'></a>枚举
+##  扩展类型
+###  枚举
 枚举通常用于约束某个变量的取值范围
 ```
 enum 枚举名{
@@ -427,9 +429,7 @@ p = p ^ Permission.Write;
 console.log(hasPermission(p, Permission.Write));
 ```
 
-
-#
-
+## 
 
 
 
