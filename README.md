@@ -65,6 +65,7 @@ console.log(str);
     "include": ["./src"]//输入目录
 }
 ```
+[更多配置](https://blog.csdn.net/weixin_39843414/article/details/107724369)
 直接在项目根目录输入
 ```
 > tsc 
@@ -190,7 +191,7 @@ let user: {
     age:number
 } = {
     name:"buouyu",
-    age:21,
+    age:20,
     // id:1  不能多加属性或者减少属性
 }
 
@@ -228,7 +229,7 @@ let u:User
 u = {
     name:"buouyu",
     gender:"男",
-    age:21
+    age:20
 }
 //自定义的类型和其他的类型用法一样
 ```
@@ -253,7 +254,7 @@ function fn2(obj:object):object{
     // return 1  //return其他类型会报错
     return {
         name:"buouyu",
-        age:21
+        age:20
     }
 }
 
@@ -429,8 +430,581 @@ p = p ^ Permission.Write;
 console.log(hasPermission(p, Permission.Write));
 ```
 
-## 
+### 接口 inteface
 
+**接口的简单使用**
+```ts
+//接口约束对象
+interface User {
+    name: string
+    age: number
+    sayHello(): number
+    //sayHello后面的number：
+    //约束函数返回值，接口这里约束函数参数是没有作用的，
+    //而且如果是void，函数再用的时候是可以有返回值的相当于any,
+    //如果是any也可以没有返回值
+}
 
+let u:User = {
+    name:'buouyu',
+    age:20,
+    sayHello(){
+        console.log('hello')
+        return 1
+    }
+}
+```
+相当于
+```ts
+type User = {
+    name: string
+    age: number
+    sayHello: () => number
+}
+let u:User = {
+    name:'buouyu',
+    age:20,
+    sayHello(){
+        console.log('hello')
+        return 1
+    }
+}
+```
+约束函数
+```ts
+//接口约束函数
+interface Condition {
+    (n: number): boolean//正常约束参数，约束返回值
+}
+function sum(a:number,b:number,callBakc:Condition):number{
+    callBakc(a)
+    return a+b
+}
+sum(1,2,(a)=>a>0)
 
+//类型别名约束函数
+// type Condition = (n: number) => boolean
+```
+联合约束
+```ts
+interface RunOptions { 
+    program:string; 
+    commandline:string[]|string|(()=>string); //可以是这三种的任意一种情况
+} 
+```
+接口和数组
+```ts
+interface namelist { 
+   [index:number]:string //索引是数字，元素是字符串
+} 
+ 
+var list2:namelist = ["John",1,"Bran"] // 错误元素 1 不是 string 类型
+interface ages { 
+   [index:string]:number //索引是字符串，元素是数字
+} 
+ 
+var agelist:ages; 
+agelist["John"] = 15   // 正确 
+agelist[2] = "nine"   // 错误 
+```
+**接口的继承**
 
+```ts
+interface A {
+    T1: string
+}
+
+interface B {
+    T2: number
+}
+
+interface C extends A, B {
+    T3: boolean
+    // T2:string //会报错，不能跟父级的重复
+
+}
+
+//相当于
+interface C{
+    T1: string
+    T2: number
+    T3: boolean
+}
+```
+用类型别名实现类似的功能，叫做交叉类型
+```ts
+type A = {
+    T1: string
+}
+
+type B = {
+    T2: number
+}
+
+type C = {
+    // T1: number  //会报错，不能和后面&的重复
+    T3: boolean
+} & A & B
+```
+**readonly**
+```ts
+type User = {
+    readonly id: string //只读属性
+    name: string
+    age: number,
+    readonly arr: readonly string[] //只读属性
+}
+
+const person:User = {
+    id:'handsome',
+    name:'buouyu',
+    age:20,
+    arr:['yes','yes','yes']
+}
+// person.id="ugly" //会报错
+// person.arr.push('yes') //会报错
+// person.arr[0]="no"//会报错
+```
+
+**其他**
+```ts
+interface User {
+    name?: string// 后面有？代表这个属性可有可无,
+    age: number
+}
+const u:User ={
+    age:20,
+    // name:'buouyu'//可写可不写
+}
+```
+<!-- **类型兼容性** -->
+<!-- 参数：传递给目标函数的参数可以少，但不可以多
+
+返回值：要求返回必须返回；不要求返回，你随意； -->
+
+### ts中的类
+> 面向对象思想
+
+访问修饰符可以控制类中的某个成员的访问权限
+
+- public：默认的访问修饰符，公开的，所有的代码均可访问
+- private：私有的，只有在类中可以访问
+- protected：受保护的成员，只能在自身和子类中访问
+
+```strictPropertyInitialization:true```
+此规则将验证构造函数内部初始化前后已定义的属性。
+必须要确保每个实例的属性都有初始值，可以在构造函数里或者属性定义时赋值。
+
+```ts
+class User {
+    readonly id: number //只读属性不能改变
+    gender: "男" | "女" = "男"//或男或女，默认为男
+    pid?: string//可有可无
+    private _publishNumber: number = 3; //私有属性，不能被外界访问到，默认值为3
+
+    constructor(public name: string, private _age: number) {//构造器，
+        this.id = Math.random();
+    }
+    set age(value: number) {
+            this._age = value;//注意这个用this.age,会递归调用age
+    }
+    get age() {
+        return this._age
+    }
+
+    publish(title: string) {
+       this._publishNumber ++;
+       console.log(title,this._publishNumber)
+    }
+}
+const u = new User("buouyu", 20);
+console.log(u) //返回
+// User {
+//     name: 'buouyu',
+//     _age: 20,
+//     gender: '男',
+//     _publishNumber: 3,
+//     id: 0.6268206795962001
+//   }
+
+console.log(Object.getOwnPropertyDescriptor(u,'id'))
+// {
+//     value: 0.20637463418090052,
+//     writable: true,
+//     enumerable: true,
+//     configurable: true
+//   }
+
+// u.id = '112233' //报错，虽然描述符里面显示的可写，可遍历，但还是不能更改，会报错
+```
+**继承，private，protected**
+子类成员不能改变父类成员的类型
+
+无论是属性还是方法，子类都可以对父类的相应成员进行重写，但是重写时，需要保证类型的匹配
+```ts
+export class Tank {
+    protected name: string = "坦克"//只能在本类和子类中使用，不能在外部使用
+    protected shape:string = 'rectangular'
+     color='red'//直接赋值会自动检测类型
+    private size = 10//私有属性，只能在Tank类中使用，不能在子类或外部使用
+    sayHello() {
+        console.log(`我是一个${this.name}`)
+    }
+}
+export class PlayerTank extends Tank {//继承
+    name: string = "玩家坦克"//重新赋值，此时的name已经不受保护，可以被外界访问
+    life: number = 5;
+    // color=3; //报错，需要赋值字符串
+    color='blue'
+    // size = 100 //会报错
+    sayHello() {
+        console.log("啦啦啦啦");
+    }
+
+    test() {
+        super.sayHello();//我是一个玩家坦克
+        this.sayHello();//啦啦啦啦
+        console.log(super.name)//undefined
+        console.log(this.name)//玩家坦克
+        console.log(super.color)//undefined
+        // console.log(this.size) //报错
+    }
+}
+const p = new PlayerTank()
+
+console.log(p)
+// PlayerTank {
+//     name: '玩家坦克',
+//     shape: 'rectangular',
+//     color: 'blue',
+//     size: 10,
+//     life: 5
+//   }
+console.log(p.name)//玩家坦克
+// console.log(p.shape)//报错
+// console.log(p.size) //报错
+p.test()
+
+```
+**抽象类**
+有时，某个类只表示一个抽象概念，主要用于提取子类共有的成员，而不能直接创建它的对象。该类可以作为抽象类。
+
+给类前面加上```abstract```，表示该类是一个抽象类，不可以创建一个抽象类的对象。
+
+**抽象成员**
+
+父类中，可能知道有些成员是必须存在的，但是不知道该成员的值或实现是什么，因此，需要有一种强约束，让继承该类的子类，必须要实现该成员。
+
+抽象类中可以有抽象成员，这些抽象成员必须在子类中实现
+
+```ts
+abstract class Chess {
+    x: number = 0
+    y: number = 0
+
+    abstract readonly name: string;//抽象成员
+
+    protected abstract rule(targetX: number, targetY: number): boolean;//抽象成员
+}
+
+class Horse extends Chess {
+    protected rule(targetX: number, targetY: number): boolean {
+        return true;
+    }
+
+    readonly name: string = "马";//子类中必须实现父类的抽象成员
+}
+
+const h = new Horse()
+// const c = new Chess()  //报错，不能new抽象类
+```
+**静态成员**
+静态成员是指，附着在类上的成员（属于某个构造函数的成员）
+
+使用static修饰的成员，是静态成员
+```ts
+class A {
+    name='buouyu'
+    static age:number=20//静态成员不在this对象里
+}
+const a = new A()
+console.log(a)//A { name: 'buouyu' }
+console.log(A.age)//20
+```
+**再谈接口**
+接口用于约束类、对象、函数，是一个类型契约。
+
+接口和类型别名的最大区别：接口可以被类实现，而类型别名不可以
+
+接口可以继承类，表示该类的所有成员都在接口中。
+>类型保护函数：通过调用该函数，会触发TS的类型保护，该函数必须返回boolean
+```ts
+class A {
+    a1: string = ""
+    
+}
+class B {
+    b1: number = 0;
+}
+//接口继承类
+interface C extends A, B  {
+ }
+
+const c: C = {
+    a1: "",
+    b1: 0,
+}
+```
+```ts
+interface IFireShow {//会火圈表演的动物都会遵循该接口
+    singleFire(): void;
+}
+//类型保护函数
+//判断一个对象是否遵循该接口
+//也就是判断一个动物是否会火圈表演
+function hasFireShow(ani: object): ani is IFireShow {
+    if ((ani as IFireShow).singleFire ) {
+        return true;
+    }
+    return false;
+}
+
+ abstract class Animal {
+    abstract type: string;
+
+    constructor(
+        public name: string,
+        public age: number
+    ) {
+
+    }
+}
+
+ class Lion extends Animal {
+    type: string = "狮子";
+
+}
+//implements是对某个接口的实现，必须满足接口的类型规范,这里Tiger类必须满足IFireShow规范
+ class Tiger extends Animal implements IFireShow {
+    type: string = "老虎";
+
+    singleFire() {//这个成员不能少，需满足接口IFireShow规范
+        console.log(`${this.name}穿越了单火圈`);
+    }
+}
+
+const animals: Animal[] = [
+    new Lion("王富贵", 12),
+    new Tiger("坤坤", 20),
+    
+];
+
+//所有会进行火圈表演的动物，完成火圈表演
+animals.forEach(a => {
+    if (hasFireShow(a)) {
+        a.singleFire();
+    }
+})
+```
+**索引器**
+
+```对象[值]```，使用成员表达式
+
+在TS中，默认情况下，不对索引器（成员表达式）做严格的类型检查
+
+使用配置```noImplicitAny:true```开启对隐式any的检查。
+
+隐式any：TS根据实际情况推导出的any类型
+
+在索引器中，键的类型可以是字符串，也可以是数字
+
+在类中，索引器书写的位置应该是所有成员之前
+
+TS中索引器的作用
+
+- 在严格的检查下，可以实现为类动态增加成员
+- 可以实现动态的操作类成员
+
+在JS中，所有的成员名本质上，都是字符串，如果使用数字作为成员名，会自动转换为字符串。
+
+在TS中，如果某个类中使用了两种类型的索引器，要求两种索引器的值类型必须匹配
+```ts
+interface Person{
+     name:string
+}
+const obj:Person = {
+    name:'buouyu'
+}
+// obj.age=20 //报错
+obj['age']=20 //不报错，若开启"noImplicitAny": true 就报错了
+```
+```ts
+class M {
+    [prop:string]:object|number//索引器书写的位置应该是所有成员之前
+    //成员名为number或string类型都会检测
+    // name="buouyu"//报错，成员必须赋值为对象或number
+    user={
+        name:'buouyu'
+    }
+    number=20
+    0=1
+    // 1=true //报错
+}
+const m = new M()
+console.log(m)
+//M { '0': 1, user: { name: 'buouyu' }, number: 20 }
+class MyArr {
+    [prop:number]:number|object//索引器书写的位置应该是所有成员之前
+    //只检测成员名为number类型的成员
+    name="buouyu"//不报错，因为没检测
+    age=true//不报错
+    0=1
+    1=2
+    2={
+        name:'buouyu'
+    }
+    // 3='buouyu'//报错
+}
+const myArr = new MyArr()
+console.log(myArr)
+// MyArr {
+//     '0': 1,
+//     '1': 2,
+//     '2': { name: 'buouyu' },
+//     name: 'buouyu',
+//     age: true
+//   }
+```
+如果某个类中使用了两种类型的索引器，要求两种索引器的值类型必须匹配
+![bYc3uj.png](https://s4.ax1x.com/2022/03/03/bYc3uj.png)
+
+**this指向约束**
+在JS中this指向的几种情况:
+
+明确：大部分时候，this的指向取决于函数的调用方式
+
+- 如果直接调用函数（全局调用），this指向全局对象或undefined (启用严格模式)
+- 如果使用```对象.方法```调用，this指向对象本身
+- 如果是dom事件的处理函数，this指向事件处理对象
+
+特殊情况：
+
+- 箭头函数，this在函数声明时确定指向，指向函数位置的this
+- 使用bind、apply、call手动绑定this对象
+
+TS中的this:
+配置noImplicitThis为true，表示不允许this隐式的指向any
+
+在TS中，允许在书写函数时，手动声明该函数中this的指向，将this作为函数的第一个参数，该参数只用于约束this，并不是真正的参数，也不会出现在编译结果中。
+
+没有约束this
+```ts
+interface IUser {
+    name: string,
+    sayHello(): void
+}
+
+const u: IUser = {
+    name: "buouyu",
+    sayHello() {
+        console.log(this.name)
+    }
+}
+const say = u.sayHello;
+say()//undefined ，因为this指向window
+u.sayHello()//buouyu
+```
+约束了this
+```ts
+interface IUser {
+    name: string,
+    sayHello(this: IUser): void//约束了this
+}
+
+const u: IUser = {
+    name: "buouyu",
+    sayHello() {
+        console.log(this.name)
+    }
+}
+const say = u.sayHello;
+// say() //这样直接执行会报错
+u.sayHello()//this指向正确
+```
+## 泛型
+**ts为什么要有泛型？**
+先举一个简单的例子
+```ts
+//我们实现一个功能，传入字符串，我们就return一个字符串，传入一个数字我们就return一个数字
+function fn(a:string|number):number|string{
+    return a
+}
+
+//在我们传入数字时，就应该知道result是一个数字，但实际result类型为数字或字符串
+let result =  fn(1)
+result ="a" //可以正常赋值，但我们只希望他只能赋值为数字
+```
+![b8tWvD.md.png](https://s4.ax1x.com/2022/03/02/b8tWvD.md.png)
+
+**使用泛型**
+```ts
+//这里尖括号里面的T，就相当于一个类型变量，会根据我们传的值自动推导类型
+//比如我们传的数字，那么T就代表number类型
+function fn<T>(a:T):T{
+    return a
+}
+
+let result =  fn(1) //这里就很确定result是一个数字类型
+// result ="a" //报错
+```
+![b8wt6f.md.png](https://s4.ax1x.com/2022/03/02/b8wt6f.md.png)
+
+**泛型**：是指附属于函数、类、接口、类型别名之上的类型
+
+泛型相当于是一个类型变量，在定义时，无法预先知道具体的类型，可以用该变量来代替，只有到调用时，才能确定它的类型
+
+很多时候，TS会智能的根据传递的参数，推导出泛型的具体类型
+
+如果无法完成推导，并且又没有传递具体的类型，默认为空对象
+
+泛型可以设置默认值
+
+```ts
+interface hasNameProperty {
+    name: string
+}
+//对T的限制，也就是T中必须有name属性
+function fn<T extends hasNameProperty>(obj: T): T {
+    return obj;
+}
+
+const o = {
+    name:"buouyu",
+    age:20
+}
+const oo = {
+    age:20
+}
+
+const newO = fn(o);
+// const newOo = fn(oo) //报错
+```
+**两个变量**
+```ts
+function fn<T, K>(arr1: T[], arr2: K[]): (T | K)[] {
+    return arr1.length>arr2.length?arr1:arr2;
+}
+
+const result = fn([1, 3, 4], ["a", "b", "c"]);
+```
+**在类中的使用**
+```ts
+export class ArrayHelper<T> {
+    constructor(private arr: T[]) { }
+    take(): T[] {
+        const newArr: T[] = [];
+        newArr.push(this.arr[0])
+        return newArr;
+    }
+}
+```
