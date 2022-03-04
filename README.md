@@ -145,7 +145,7 @@ str = null //在非严格控类情况下可以这样赋值
 str = undefined //在非严格控类情况下可以这样赋值
 ```
 ##  常见类型 一下都是严格控类情况下
-注：string,number,boolean,object的类型名称的首字母可大写可小写，其他的类型名称首字母只能小写
+如果后面不写类型，在赋值时ts也会自动检测类型，后面也不能改变类型从新赋值，但为了规范，建议声明时后面都加上类型
 ```ts
 let str:String = 'abc' //只能赋值字符串
 let num:Number = 1 //只能赋值数字(NaN和Infinity也可以)
@@ -914,7 +914,7 @@ const say = u.sayHello;
 say()//undefined ，因为this指向window
 u.sayHello()//buouyu
 ```
-约束了this
+约束this
 ```ts
 interface IUser {
     name: string,
@@ -1008,3 +1008,482 @@ export class ArrayHelper<T> {
     }
 }
 ```
+
+## 装饰器
+###装饰器概述
+在js中也有装饰器，是es7的新语法，目前仍处于第2阶段提案中，使用它之前需要使用 babel 模块 transform-decorators-legacy 编译成 ES5 或 ES6
+
+其实很多语言中都有类似的东西，只是叫法不同，在java中叫注解，在c#中叫特征
+
+装饰器是干嘛用的呢，
+先举一个简单的场景：
+如我们创建一个类，用于记录用户的登录信息，但这些信息是有限制的
+比如：用户名 必填 必须是3-7个字符
+     密码   必填  必须是3-8个字符
+```ts
+class User {
+    username:string//必填，长度在3到7
+    password:string//必填，长度在3到8
+}
+```
+一般情况下我们会写一个验证函数，而且验证非常死性，后续再增加其他信息，比如age,id等，都要大幅改动验证函数,并且不一目了然，在大型项目中更容易出问题
+```ts
+function validate(obj: object) {
+    for (const key in obj) {
+        const val = (obj as any)[key];
+        //缺少该属性的验证规则
+    }
+}
+```
+
+为了让大代码写起来更加的爽，新增了装饰器
+```ts
+class User {
+    @required;//这些就是装饰器，本质就是函数，不通过验证就会报错
+    @range(3,7)//一目了然
+    username:string//必填，长度在3到7
+    @required;
+    @range(3,8)
+    password:string//必填，长度在3到8
+
+}
+```
+
+在ts中使用装饰器要加  "experimentalDecorators": true配置
+
+装饰器可以修饰：
+- 类
+- 成员（属性+方法）
+- 参数
+
+### 类装饰器
+修饰类的装饰器
+在TS中，如何约束一个变量为类（构造函数）
+- Function
+- ```new (参数)=>object```
+
+```ts
+function decorator1(F:new ()=>{}){//装饰器函数
+    console.log(F)
+}
+
+function createDecorator(){//生成装饰器函数的函数
+    console.log(1)
+    return (F:new ()=>{})=>{
+    }
+}
+
+@decorator1//在类A声明时运行
+@createDecorator()//先执行createDecorator生成装饰器，再在类A声明时执行装饰器函数
+//而且多个装饰器执行顺序是相反的，这里时先执行createDecorator()生成装饰器函数，再执行decorator1函数
+class A {
+
+}
+```
+一道面试题
+
+```ts
+function createDecorator1(){
+    console.log('createDecorator1')
+        return (F:new ()=>{})=>{
+            console.log('decorator1')
+    }
+}
+
+function createDecorator2(){
+    console.log('createDecorator2')
+        return (F:new ()=>{})=>{
+            console.log('decorator2')
+    }
+}
+
+@createDecorator1()
+@createDecorator2()
+class A {
+}
+结果：
+createDecorator1
+createDecorator2
+decorator2
+decorator1
+```
+
+类装饰器可以具有的返回值：
+
+- void：仅运行函数
+- 返回一个新的类：会将新的类替换掉装饰目标
+
+### 成员装饰器
+修饰成员的装饰器
+
+- 修饰属性 
+
+属性装饰器也是一个函数，该函数需要两个参数：
+1.第一个参数： 如果是静态属性，则为类本身；如果是实例属性，则为类的原型；
+2.第二个参数： 固定为一个字符串，表示属性名
+
+```ts
+function decorator1(obj:object,key:string){
+    console.log(obj,key) 
+}
+function decorator2(obj:object,key:string){
+    console.log(obj,key)
+}
+class A {
+    @decorator1
+   static username?:string
+
+    @decorator2
+    name?:string
+
+    @decorator2
+    age?:number
+
+}
+结果：
+{} name
+{} age
+[class A] username
+```
+
+- 修饰方法
+  
+方法装饰器也是一个函数，该函数需要三个参数：
+1.第一个参数： 如果是静态方法，则为类本身；如果是实例方法，则为类的原型；
+2.第二个参数： 固定为一个字符串，表示方法名
+3.第三个参数： 属性描述对象
+可以有多个装饰器修饰
+
+```ts
+function enumerable(target: any, key: string, descriptor: PropertyDescriptor) {
+    console.log(target, key, descriptor);
+    descriptor.enumerable = true;
+}
+
+function useless(target: any, key: string, descriptor: PropertyDescriptor) {
+    descriptor.value = function () {
+        console.warn(key + "方法已过期");
+    }
+}
+
+class A {
+    @enumerable
+    @useless
+    method1() {
+        console.log("method1");
+    }
+
+    @enumerable
+    method2() {
+
+    }
+}
+const a = new A();
+a.method1();
+
+结果：
+{} method1 {
+  value: [Function (anonymous)],
+  writable: true,
+  enumerable: false,
+  configurable: true
+}
+
+{ method1: [Function (anonymous)] } method2 {
+  value: [Function: method2],
+  writable: true,
+  enumerable: false,
+  configurable: true
+}
+
+method1方法已过期
+```
+
+
+### reflect-metadata库
+
+该库的作用：保存元数据
+直接 npm i reflect-metadata 安装就行
+[github地址](https://github.com/rbuckton/reflect-metadata) 在这也可以找到官网有教程
+
+简单用法
+```ts
+import "reflect-metadata";
+
+@Reflect.metadata("a1", "asdfasdfasdfaf")
+@Reflect.metadata("a2", "adsfasf")
+@Reflect.metadata("a", "一个类")
+class A {
+
+    @Reflect.metadata("a", "一个属性")
+    prop1:string
+}
+const obj = new A();
+
+console.log(Reflect.getMetadata("a", A));//一个类
+
+console.log(Reflect.getMetadata("a", obj, "prop1"))//一个属性
+```
+
+### class-validator 和 class-transformer 库
+npm i class-validator       
+提供一些验证
+[class-validator文档](https://www.npmjs.com/package/class-validator)
+简单使用
+```ts
+import "reflect-metadata";
+import { IsNotEmpty, validate, MinLength, MaxLength, Min, Max } from "class-validator"
+class RegUser {
+    @IsNotEmpty({ message: "账号不可以为空" })
+    @MinLength(5, { message: "账号必须至少有5个字符" })
+    @MaxLength(12, { message: "账号最多12个字符" })
+    loginId: string
+
+    loginPwd: string
+
+    @Min(0, { message: "年龄的最小值是0" })
+    @Max(100, { message: "年龄的最大值是100" })
+    age: number
+    gender: "男" | "女"
+}
+```
+npm i class-transformer
+将平面对象转化成实例对象
+[class-transformer文档](https://www.npmjs.com/package/class-transformer)
+简单使用
+```ts
+import { plainToClass, Type } from "class-transformer"
+
+ const users = [
+        {
+          "id": 1,
+          "firstName": "Johny",
+          "lastName": "Cage",
+          "age": 27
+        },
+        {
+          "id": 2,
+          "firstName": "Ismoil",
+          "lastName": "Somoni",
+          "age": 50
+        },
+      ]
+      export class User {
+        id: number;
+        firstName: string;
+        lastName: string;
+        age: number;
+      
+        getName() {
+          return this.firstName + ' ' + this.lastName;
+        }
+      
+        isAdult() {
+          return this.age > 36 && this.age < 60;
+        }
+      }
+      const realUsers = plainToClass(User, users);//一般再请求中用
+      console.log(realUsers[0].getName())//Johny Cage
+```
+
+### 补充
+
+- 参数装饰器
+
+依赖注入、依赖倒置
+
+要求函数有三个参数：
+
+1.第一个参数 如果方法是静态的，则为类本身；如果方法是实例方法，则为类的原型
+2.第二个参数 方法名称
+3.第三个参数 在参数列表中的索引
+
+```ts
+function descriptor(obj:object,name:string,index:number){
+    console.log(obj,name,index)//{} method 1
+}   
+
+class A {
+    method(a:number,@descriptor b:number){
+
+    }
+}
+```
+
+- 关于TS自动注入的元数据
+
+如果安装了```reflect-metadata```，并且导入了该库，并且在某个成员上添加了元数据，并且启用了```emitDecoratorMetadata```。
+
+则TS在编译结果中，会将约束的类型，作为元数据加入到相应位置
+
+这样一来，TS的类型检查（约束）将有机会在运行时进行。
+
+
+### 类型演算
+
+> 根据已知的信息，计算出新的类型
+
+**三个关键字**
+
+- typeof
+
+TS中的typeof，书写的位置在类型约束的位置上。
+
+表示：获取某个数据的类型
+
+当typeof作用于类的时候，得到的类型，是该类的构造函数
+
+```ts
+class A{
+
+}
+class B{
+    name:string
+    username:typeof this.name //得到name的类型进行相同约束
+}
+function fn(F:typeof A){//判断F是不是构造函数
+
+}
+fn(B)
+```
+
+- keyof
+
+作用于类、接口、类型别名，用于获取其他类型中的所有成员名组成的联合类型
+
+- in
+
+该关键字往往和keyof联用，限制某个索引类型的取值范围。
+
+```ts
+interface Article {
+    title: string
+    publishDate: Date
+}
+
+//将User的所有属性值类型变成字符串，得到一个新类型
+type String<T> = {
+    [p in keyof T]: string
+}
+
+type Readonly<T> = {
+    readonly [p in keyof T]: T[p]
+}
+
+type Partial<T> = {
+    [p in keyof T]?: T[p]
+}
+//String<Article> 就是把Article成员所有类型改成string类型
+const u: String<Article> = {
+    title: "Sfsdf",
+    publishDate: "sdf"
+}
+```
+
+
+**TS中预设的类型演算**
+```ts
+
+Partial<T>  // 将类型T中的成员变为可选
+
+Required<T>  // 将类型T中的成员变为必填
+
+Readonly<T> // 将类型T中的成员变为只读
+
+Exclude<T, U> // 从T中剔除可以赋值给U的类型。
+
+Extract<T, U> // 提取T中可以赋值给U的类型。
+
+NonNullable<T> // 从T中剔除null和undefined。
+
+ReturnType<T> // 获取函数返回值类型。
+
+InstanceType<T> // 获取构造函数类型的实例类型。
+
+```
+
+## 声明文件
+在我们需要ts与js结合时，需要用到声明文件
+比如在我用ts开发时，突然需要用到以前写的js文件，但是js文件没有类型推断，重新再改写非常麻烦，我们只需要再写个文件（声明文件），对以前写的js代码加上类型约束，不需要改变原文件
+前面讲的@type/node里面就是声明文件，对node api 加上类型约束，因为node用的也是js
+### 概述
+
+1. 什么是声明文件？
+
+以```.d.ts```结尾的文件
+
+2. 声明文件有什么作用？
+
+为JS代码提供类型声明
+
+3. 声明文件的位置
+
+- 放置到tsconfig.json配置中包含的目录中
+- 放置到node_modules/@types文件夹中
+- 手动配置
+- 与JS代码所在目录相同，并且文件名也相同的文件。用ts代码书写的工程发布之后的格式。
+
+[声明文件详解](https://blog.csdn.net/hcz804933522/article/details/104013775)
+### 编写
+
+> 手动编写  自动生成
+
+- 自动生成
+
+工程是使用ts开发的，发布（编译）之后，是js文件，发布的是js文件。
+
+如果发布的文件，需要其他开发者使用，可以使用声明文件，来描述发布结果中的类型。
+
+配置```tsconfig.json```中的```declaration:true```即可
+
+- 手动编写
+
+1. 对已有库，它是使用js书写而成，并且更改该库的代码为ts成本较高，可以手动编写声明文件
+
+2. 对一些第三方库，它们使用js书写而成，并且这些第三方库没有提供声明文件，可以手动编写声明文件。
+
+
+
+**全局声明**
+
+声明一些全局的对象、属性、变量
+
+> namespace: 表示命名空间，可以将其认为是一个对象，命名空间中的内容，必须通过```命名空间.成员名```访问
+
+**模块声明**
+
+**三斜线指令**
+
+在一个声明文件中，包含另一个声明文件
+
+
+
+### 发布
+
+1. 当前工程使用ts开发
+
+编译完成后，将编译结果所在文件夹直接发布到npm上即可
+
+2. 为其他第三方库开发的声明文件
+
+发布到@types/**中。
+
+1） 进入github的开源项目：https://github.com/DefinitelyTyped/DefinitelyTyped
+
+2） fork到自己的开源库中
+
+3） 从自己的开源库中克隆到本地
+
+4） 本地新建分支（例如：mylodash4.3），在新分支中进行声明文件的开发
+
+    在types目录中新建文件夹，在新的文件夹中开发声明文件
+
+5） push分支到你的开源库
+
+6） 到官方的开源库中，提交pull request
+
+7） 等待官方管理员审核（1天）
+
+审核通过之后，会将你的分支代码合并到主分支，然后发布到npm。
+
+之后，就可以通过命令```npm install @types/你发布的库名```
